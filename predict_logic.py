@@ -1,7 +1,7 @@
-import pandas as pd
+import pandas as pd # Not directly used in predict_logic.py for DataFrame operations, but often included
 import re
 import nltk
-from nltk.corpus import stopwords
+from nltk.corpus import stopwords # Still import, but 'stopwords' set itself won't be used for filtering here.
 from nltk.stem import WordNetLemmatizer
 import torch
 from transformers import DistilBertTokenizer, DistilBertModel
@@ -19,12 +19,17 @@ TOXICITY_LABELS = ['toxic', 'severe_toxic', 'obscene', 'threat', 'insult', 'iden
 # nltk.download('wordnet')
 # nltk.download('punkt')
 lemmatizer = WordNetLemmatizer()
-stop_words = set(stopwords.words('english'))
+# stop_words = set(stopwords.words('english')) # No longer needed as we are removing stopword filtering
 
 # --- 1. Re-define the Preprocessing Function (MUST BE IDENTICAL TO 02_preprocessing.py) ---
+# This version performs essential cleaning but DOES NOT remove stopwords.
+# This is generally preferred for Transformer-based models like DistilBERT.
 def preprocess_text(text):
+    # Ensure text is treated as string, handle potential non-string inputs gracefully
     if not isinstance(text, str):
-        return "" # Handle non-string inputs, though comments should be strings
+        text = str(text) 
+        if not text.strip(): # If it converts to an empty or whitespace-only string, return empty
+            return ""
 
     # Convert to lowercase
     text = text.lower()
@@ -38,19 +43,17 @@ def preprocess_text(text):
     # Remove numbers
     text = re.sub(r'\d+', '', text)
     
-    # Remove punctuation and special characters (keep only letters, spaces)
-    text = re.sub(r'[^\w\s]', '', text)
+    # Remove punctuation and special characters (keep only letters, spaces, and underscores)
+    text = re.sub(r'[^\w\s]', '', text) 
     
     # Remove extra whitespaces
-    text = text.strip() # THIS WAS THE FIX FROM BEFORE!
+    text = text.strip()
     
     # Tokenization
     tokens = nltk.word_tokenize(text)
     
-    # Remove stop words and lemmatize
-    processed_tokens = [
-        lemmatizer.lemmatize(word) for word in tokens if word not in stop_words
-    ]
+    # --- CHANGE: Only lemmatize, DO NOT remove stopwords ---
+    processed_tokens = [lemmatizer.lemmatize(word) for word in tokens]
     
     # Join tokens back into a string
     return " ".join(processed_tokens)
